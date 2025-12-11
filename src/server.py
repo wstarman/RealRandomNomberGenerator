@@ -1,11 +1,27 @@
 import asyncio
 from fastapi import FastAPI, Response
+from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 import traceback
 
 from RealRNG.RealRNG import RealRNG
 
 app = FastAPI()
+
+# Add CORS middleware to allow frontend requests
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",  # Allow backend's own origin
+        "http://127.0.0.1:8000",  # Allow backend's own origin
+    ],
+    allow_credentials=True,
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
+
 rng = RealRNG()
 
 async def random():
