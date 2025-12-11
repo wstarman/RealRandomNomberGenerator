@@ -78,18 +78,35 @@ export default function RandomNumberDisplay() {
     <Container size="xs" style={{ position: 'relative', paddingTop: 60 }}>
       <LoadingOverlay visible={loading} />
 
-      {/* Status Indicator */}
+      {/* Status Indicator with Visual Text */}
       <div
+        role="status"
+        aria-label={`Random number source: ${data.source}`}
         style={{
           position: 'fixed',
           top: 20,
           right: 20,
-          width: 12,
-          height: 12,
-          borderRadius: '50%',
-          backgroundColor: statusColor,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '6px 12px',
+          backgroundColor: 'white',
+          borderRadius: 16,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
         }}
-      />
+      >
+        <div
+          style={{
+            width: 12,
+            height: 12,
+            borderRadius: '50%',
+            backgroundColor: statusColor,
+          }}
+        />
+        <Text size="sm" fw={500}>
+          {data.source === 'microphone' ? 'Microphone' : 'Fallback'}
+        </Text>
+      </div>
 
       <Title order={1} style={{ textAlign: 'center', marginBottom: 40 }}>
         Random Number Generator
