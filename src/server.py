@@ -60,7 +60,7 @@ async def api_random(response: Response) -> dict:
         return await asyncio.wait_for(random(), timeout=5)
 
     except Exception as e:
-        if e is asyncio.TimeoutError:
+        if type(e) is asyncio.TimeoutError:
             logger.error("Request timed out after 5 seconds")
         else:
             logger.error(f"Error in api_random: {type(e).__name__}: {e}")
