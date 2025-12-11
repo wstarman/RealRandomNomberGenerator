@@ -56,6 +56,10 @@ class RealRNG:
         self.SOURCE_MICROPHONE = "microphone"
         self.SOURCE_FALLBACK = "fallback"
 
+        # Recovery mechanism tracking
+        self.last_retry_attempt = None
+        self.retry_interval = 30  # seconds between recovery attempts
+
         # Find working device at startup
         self.device_index = self._find_working_device()
         self.microphone_available = (self.device_index is not None)
@@ -64,6 +68,13 @@ class RealRNG:
             logger.info(f"RealRNG initialized with microphone (device {self.device_index})")
         else:
             logger.warning("RealRNG initialized in fallback mode (no microphone)")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.end()
+        return False
 
     def _enumerate_devices(self):
         """List all available input devices"""
@@ -88,8 +99,46 @@ class RealRNG:
 
         return devices
 
+    def _validate_audio_variance(self, samples: list) -> bool:
+        """
+        Validate that audio samples contain actual variance.
+
+        This prevents selecting devices that only output silence or constant data,
+        which would cause the RNG to always return the same hash value.
+
+        Args:
+            samples: List of raw audio byte data
+
+        Returns:
+            True if samples show variance, False if silent/constant
+        """
+        if not samples:
+            logger.debug("No samples to validate")
+            return False
+
+        # Check 1: At least one sample is non-zero
+        all_zero = all(sample == b'\x00' * len(sample) for sample in samples)
+        if all_zero:
+            logger.debug("All samples are zero (silence)")
+            return False
+
+        # Check 2: Samples are not all identical (need at least 2 unique)
+        unique_samples = len(set(samples))
+        if unique_samples < 2:
+            logger.debug(f"Only {unique_samples} unique sample(s) - no variance detected")
+            return False
+
+        # Passed variance checks
+        logger.debug(f"Audio variance validated: {unique_samples} unique samples")
+        return True
+
     def _test_device(self, device_index):
-        """Test if a device can be opened and read from"""
+        """
+        Test if a device can be opened and produces varying audio data.
+
+        Captures multiple samples and validates that they contain actual variance,
+        not just silence or constant data.
+        """
         try:
             with SuppressStderr():
                 test_stream = self.audio.open(
@@ -102,12 +151,29 @@ class RealRNG:
                     start=False
                 )
                 test_stream.start_stream()
-                data = test_stream.read(1, exception_on_overflow=False)
+
+                # Capture 3 samples to test for variance
+                samples = []
+                for i in range(3):
+                    data = test_stream.read(CHUNK, exception_on_overflow=False)
+                    samples.append(data)
+
+                    # Show sample preview in debug mode
+                    if logger.isEnabledFor(logging.DEBUG):
+                        preview = data[:16].hex() if len(data) >= 16 else data.hex()
+                        logger.debug(f"Device {device_index} sample {i+1}: {preview}")
+
                 test_stream.stop_stream()
                 test_stream.close()
 
-            logger.info(f"Device {device_index} test successful")
+            # Validate audio variance
+            if not self._validate_audio_variance(samples):
+                logger.info(f"Device {device_index} rejected: no audio variance (likely silent or inactive)")
+                return False
+
+            logger.info(f"Device {device_index} test successful: audio variance confirmed")
             return True
+
         except Exception as e:
             logger.debug(f"Device {device_index} test failed: {type(e).__name__}")
             return False
@@ -157,9 +223,28 @@ class RealRNG:
             return r.random()
 
     def getSource(self) -> str:
-        # If microphone unavailable, return fallback immediately
+        # Try to recover from previous failure periodically
         if not self.microphone_available:
-            return self.SOURCE_FALLBACK
+            import time
+            current_time = time.time()
+
+            if (self.last_retry_attempt is None or
+                current_time - self.last_retry_attempt > self.retry_interval):
+
+                logger.info("Attempting to recover microphone connection...")
+                self.last_retry_attempt = current_time
+
+                # Re-scan for working device
+                self.device_index = self._find_working_device()
+                self.microphone_available = (self.device_index is not None)
+
+                if self.microphone_available:
+                    logger.info(f"Microphone recovered on device {self.device_index}")
+                else:
+                    logger.debug("Microphone still unavailable")
+                    return self.SOURCE_FALLBACK
+            else:
+                return self.SOURCE_FALLBACK
 
         # If stream exists and active, return microphone
         if self.stream and self.stream.is_active():
@@ -185,56 +270,47 @@ class RealRNG:
             self.microphone_available = False
             return self.SOURCE_FALLBACK
 
-    def selfTest(self):
-        import matplotlib.pyplot as plt
-        numbers = []
-        for i in range(10000):
-            numbers.append(self.getRand())
-        plt.hist(numbers, bins=64, edgecolor='black')
-        plt.title("Number Distribution")
-        plt.xlabel("Value")
-        plt.ylabel("Count")
-        plt.show()
-
     # private method
     def _hashInput(self) -> int:
-        if not self.stream:
+        # Check stream is ready before reading
+        if not self.stream or not self.stream.is_active():
             if self.getSource() == self.SOURCE_FALLBACK:
                 raise RealRNGError(0)
 
         try:
             data = self.stream.read(4, exception_on_overflow=False)
-            self.stream.stop_stream()
             hash_value = int(hashlib.sha256(data).hexdigest(), 16)
             logger.debug("Generated hash from microphone input")
             return hash_value
 
         except IOError as e:
             logger.error(f"IOError reading from microphone: {e}")
-            if self.stream:
-                self.stream.stop_stream()
             raise RealRNGError(0)
         except Exception as e:
             logger.error(f"Unexpected error reading from microphone: {type(e).__name__}: {e}")
-            if self.stream:
-                self.stream.stop_stream()
             raise RealRNGError(0)
 
     def end(self):
-        """Clean up resources"""
+        """Clean up resources - safe to call multiple times"""
         logger.debug("Cleaning up RealRNG resources")
-        try:
-            if self.stream:
+
+        # Close stream
+        if hasattr(self, 'stream') and self.stream:
+            try:
                 if self.stream.is_active():
                     self.stream.stop_stream()
                 self.stream.close()
-        except Exception as e:
-            logger.warning(f"Error closing stream: {e}")
+                self.stream = None
+            except Exception as e:
+                logger.warning(f"Error closing stream: {e}")
 
-        try:
-            self.audio.terminate()
-        except Exception as e:
-            logger.warning(f"Error terminating PyAudio: {e}")
+        # Terminate PyAudio
+        if hasattr(self, 'audio') and self.audio:
+            try:
+                self.audio.terminate()
+                self.audio = None
+            except Exception as e:
+                logger.warning(f"Error terminating PyAudio: {e}")
 
     @staticmethod
     def list_devices():
@@ -259,19 +335,16 @@ class RealRNG:
 
             audio.terminate()
 
-# selfTest
 if __name__ == "__main__":
     import sys
     import argparse
-    import time
 
-    parser = argparse.ArgumentParser(description='RealRNG - True Random Number Generator')
+    parser = argparse.ArgumentParser(
+        description='RealRNG - True Random Number Generator',
+        epilog='For running tests, use: python -m unittest discover tests'
+    )
     parser.add_argument('--list-devices', action='store_true',
                        help='List all available audio input devices')
-    parser.add_argument('--test', action='store_true',
-                       help='Run RNG test (100 samples)')
-    parser.add_argument('--selftest', action='store_true',
-                       help='Run comprehensive self-test with histogram')
     parser.add_argument('--debug', action='store_true',
                        help='Enable debug logging')
 
@@ -284,18 +357,5 @@ if __name__ == "__main__":
         RealRNG.list_devices()
         sys.exit(0)
 
-    realRNG = RealRNG()
-
-    if args.test:
-        print("Testing RNG (100 samples)...")
-        for i in range(100):
-            source = realRNG.getSource()
-            rand = realRNG.getRand()
-            print(f"{i+1}. Source: {source}, Random: {rand:.6f}")
-            time.sleep(0.1)
-    elif args.selftest:
-        realRNG.selfTest()
-    else:
-        parser.print_help()
-
-    realRNG.end()
+    # If no arguments, show help
+    parser.print_help()
