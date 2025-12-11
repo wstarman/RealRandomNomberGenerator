@@ -35,7 +35,7 @@ describe('RandomNumberDisplay', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/0.123456789/)).toBeInTheDocument();
-      expect(screen.getByText(/microphone/i)).toBeInTheDocument();
+      expect(screen.getByText(/source: microphone/i)).toBeInTheDocument();
     });
   });
 
@@ -73,8 +73,17 @@ describe('RandomNumberDisplay', () => {
     jest.useFakeTimers();
     const alertMock = jest.spyOn(window, 'alert').mockImplementation();
 
+    // Mock fetch to never resolve (simulates hanging request)
     (global.fetch as jest.Mock).mockImplementation(
-      () => new Promise(() => {}) // Never resolves
+      () =>
+        new Promise((_resolve, reject) => {
+          // Simulate AbortController behavior with fake timers
+          setTimeout(() => {
+            const error = new Error('AbortError');
+            error.name = 'AbortError';
+            reject(error);
+          }, 5000);
+        })
     );
 
     render(<RandomNumberDisplay />);
@@ -82,11 +91,15 @@ describe('RandomNumberDisplay', () => {
     const button = screen.getByRole('button', { name: /pick a number/i });
     fireEvent.click(button);
 
+    // Fast-forward time
     jest.advanceTimersByTime(5000);
 
-    await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith(expect.stringContaining('timed out'));
-    });
+    await waitFor(
+      () => {
+        expect(alertMock).toHaveBeenCalledWith(expect.stringContaining('timed out'));
+      },
+      { timeout: 100 }
+    );
 
     jest.useRealTimers();
     alertMock.mockRestore();
