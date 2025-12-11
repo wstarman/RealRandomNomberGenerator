@@ -28,6 +28,7 @@ export default function RandomNumberDisplay() {
         timestamp: apiData.timestamp,
       });
     } catch (error) {
+      console.error('Failed to fetch random number:', error);
       alert('Failed to generate random number. Please try again.');
     } finally {
       setLoading(false);
