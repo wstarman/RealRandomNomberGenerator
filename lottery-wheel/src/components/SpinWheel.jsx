@@ -35,6 +35,7 @@ export default function SpinWheel() {
     const [options, setOptions] = useState("");
     const [spinning, setSpinning] = useState(false);
     const [winner, setWinner] = useState(null);
+    const [rngMode, setRngMode] = useState("aip unused");
     const wheelRef = useRef(null);
 
     const handleSpin = async () => {
@@ -52,6 +53,7 @@ export default function SpinWheel() {
             if (res.ok) {
                 const data = await res.json();
                 randomValue = data.value; // API is expected to return { value: 0 ~ 1 }
+                setRngMode(data.mode || "");  // API 需回傳 { value: 0~1, mode: "microphone" }
             } else {
                 throw new Error("API is not available");
             }
@@ -97,108 +99,137 @@ export default function SpinWheel() {
     const totalOptions = list.length;
     const degreesPerOption = 360 / Math.max(totalOptions, 1);
     const itemColors = assignColors(list, colors);
+    const statusColor = rngMode === "microphone" 
+    ? "green" 
+    : rngMode === "fallback" 
+        ? "orange" 
+        : "gray";
 
     return (
-        <div style={{ display: "flex", gap: "2rem" }}>
-            {/* wheel */}
-            <div style={{ width: "300px", height: "300px", position: "relative" }}>
-                <div
-                    ref={wheelRef}
-                    style={{
-                        width: "100%",
-                        height: "100%",
-                        borderRadius: "50%",
-                        border: "5px solid #333",
-                        position: "relative",
-                        transform: "rotate(0deg)"
-                    }}
-                >
-                    {list.map((item, index) => {
-                        const rotate = index * degreesPerOption;
-                        const startAngle = normalizeAngle(-degreesPerOption / 2);
-                        const endAngle = normalizeAngle(degreesPerOption / 2);
-                        const sectorColor = itemColors[index];
-
-                        return (
-                            <div
-                                key={index}
-                                style={{
-                                    position: "absolute",
-                                    width: "100%",
-                                    height: "100%",
-                                    borderRadius: "50%",
-                                    transformOrigin: "center center",
-                                    transform: `rotate(${rotate}deg)`,
-                                    background: `conic-gradient(${sectorColor} 0deg, ${sectorColor} ${endAngle}deg, 
-                                                transparent ${endAngle}deg, transparent ${startAngle}deg, 
-                                                ${sectorColor} ${startAngle}deg`,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    color: "white",
-                                    fontSize: "30px"
-                                }}
-                            >
-                                <span style={{
-                                    position: "absolute",
-                                    top: "10%",           // move the label upward to the 10% position
-                                    left: "50%",
-                                    transform: "translateX(-50%)",
-                                    color: "white",
-                                    fontSize: "30px",
-                                    whiteSpace: "nowrap",
-                                    pointerEvents: "none"
-                                }}
-                                >
-                                    {item}
-                                </span>
-                            </div>
-                        );
-                    })}
-                </div>
-                {/* pointer */}
-                <div
-                    style={{
-                        position: "absolute",
-                        top: "-10px",
-                        left: "50%",
-                        transform: "translateX(-25%)",
-                        width: "0",
-                        height: "0",
-                        borderLeft: "10px solid transparent",
-                        borderRight: "10px solid transparent",
-                        borderTop: "20px solid red",
-                        zIndex: 10
-                    }}
-                />
+        <div style={{ position: "relative", alignItems: "flex-start", padding: "0" }}>
+            <h1>Lottery Wheel</h1>
+            <div style={{ 
+                position: "absolute",
+                top: "10px",
+                right: "10px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "6px 10px",
+                background: "#fff",
+                borderRadius: "8px",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.2)"
+            }}>
+                <span style={{ fontWeight: "bold" }}>RNG Mode: {rngMode}</span>
+                <div style={{
+                    width: "12px",
+                    height: "12px",
+                    borderRadius: "50%",
+                    backgroundColor: statusColor
+                }}></div>
             </div>
+            <div style={{justifyContent: "center", alignItems: "flex-start", display: "flex", gap: "2rem" }}>
+                {/* wheel */}
+                <div style={{ width: "300px", height: "300px", position: "relative" }}>
+                    <div
+                        ref={wheelRef}
+                        style={{
+                            width: "100%",
+                            height: "100%",
+                            borderRadius: "50%",
+                            border: "5px solid #333",
+                            position: "relative",
+                            transform: "rotate(0deg)"
+                        }}
+                    >
+                        {list.map((item, index) => {
+                            const rotate = index * degreesPerOption;
+                            const startAngle = normalizeAngle(-degreesPerOption / 2);
+                            const endAngle = normalizeAngle(degreesPerOption / 2);
+                            const sectorColor = itemColors[index];
 
-            {/* input + button */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                <textarea
-                    value={options}
-                    onChange={e => setOptions(e.target.value)}
-                    rows={10}
-                    cols={20}
-                    placeholder="Enter options, one per line"
-                />
-                <button
-                    disabled={spinning}
-                    onClick={handleSpin}
-                    style={{
-                        padding: "0.5rem 1rem",
-                        fontSize: "1rem",
-                        backgroundColor: spinning ? "#999" : "#007bff",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "5px",
-                        cursor: spinning ? "not-allowed" : "pointer"
-                    }}
-                >
-                    {spinning ? "Spinning..." : "Start Lottery"}
-                </button>
-                {winner && <p style={{ fontWeight: "bold" }}>🎉 Winner: {winner}</p>}
+                            return (
+                                <div
+                                    key={index}
+                                    style={{
+                                        position: "absolute",
+                                        width: "100%",
+                                        height: "100%",
+                                        borderRadius: "50%",
+                                        transformOrigin: "center center",
+                                        transform: `rotate(${rotate}deg)`,
+                                        background: `conic-gradient(${sectorColor} 0deg, ${sectorColor} ${endAngle}deg, 
+                                                    transparent ${endAngle}deg, transparent ${startAngle}deg, 
+                                                    ${sectorColor} ${startAngle}deg`,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        color: "white",
+                                        fontSize: "30px"
+                                    }}
+                                >
+                                    <span style={{
+                                        position: "absolute",
+                                        top: "10%",           // move the label upward to the 10% position
+                                        left: "50%",
+                                        transform: "translateX(-50%)",
+                                        color: "white",
+                                        fontSize: "30px",
+                                        whiteSpace: "nowrap",
+                                        pointerEvents: "none"
+                                    }}
+                                    >
+                                        {item}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    {/* pointer */}
+                    <div
+                        style={{
+                            position: "absolute",
+                            top: "-10px",
+                            left: "50%",
+                            transform: "translateX(-25%)",
+                            width: "0",
+                            height: "0",
+                            borderLeft: "10px solid transparent",
+                            borderRight: "10px solid transparent",
+                            borderTop: "20px solid red",
+                            zIndex: 10
+                        }}
+                    />
+                </div>
+
+                {/* input + button */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                    <textarea
+                        value={options}
+                        onChange={e => setOptions(e.target.value)}
+                        rows={10}
+                        cols={20}
+                        placeholder="Enter options, one per line"
+                    />
+                    <button
+                        disabled={spinning}
+                        onClick={handleSpin}
+                        style={{
+                            padding: "0.5rem 1rem",
+                            fontSize: "1rem",
+                            backgroundColor: spinning ? "#999" : "#007bff",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "5px",
+                            cursor: spinning ? "not-allowed" : "pointer"
+                        }}
+                    >
+                        {spinning ? "Spinning..." : "Start Lottery"}
+                    </button>
+                    {winner && <p style={{ fontWeight: "bold" }}>🎉 Winner: {winner}</p>}
+                </div>
             </div>
         </div>
+
     );
 }
