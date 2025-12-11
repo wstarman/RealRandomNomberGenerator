@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Container, Title, Text, Button, LoadingOverlay } from '@mantine/core';
+import { Button, Container, LoadingOverlay, Text, Title } from '@mantine/core';
 import { COLORS } from '../constants/colors';
 
 interface RandomData {
@@ -70,9 +70,8 @@ export default function RandomNumberDisplay() {
     }
   };
 
-  const statusColor = data.source === 'microphone'
-    ? COLORS.STATUS_MICROPHONE
-    : COLORS.STATUS_FALLBACK;
+  const statusColor =
+    data.source === 'microphone' ? COLORS.STATUS_MICROPHONE : COLORS.STATUS_FALLBACK;
 
   return (
     <Container size="xs" style={{ position: 'relative', paddingTop: 60 }}>

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '../test-utils';
+import { fireEvent, render, screen, waitFor } from '../test-utils';
 import RandomNumberDisplay from './RandomNumberDisplay';
 
 // Mock fetch
