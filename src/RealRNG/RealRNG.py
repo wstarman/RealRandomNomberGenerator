@@ -269,6 +269,17 @@ class RealRNG:
             self.stream = None
             self.microphone_available = False
             return self.SOURCE_FALLBACK
+        
+    def selfTest(self):
+        import matplotlib.pyplot as plt
+        numbers = []
+        for i in range(10000):
+            numbers.append(self.getRand())
+        plt.hist(numbers, bins=64, edgecolor='black')
+        plt.title("Number Distribution")
+        plt.xlabel("Value")
+        plt.ylabel("Count")
+        plt.show()
 
     # private method
     def _hashInput(self) -> int:
@@ -347,6 +358,9 @@ if __name__ == "__main__":
                        help='List all available audio input devices')
     parser.add_argument('--debug', action='store_true',
                        help='Enable debug logging')
+    parser.add_argument('--test', action='store_true',
+                       help='start self test')
+
 
     args = parser.parse_args()
 
@@ -356,6 +370,10 @@ if __name__ == "__main__":
     if args.list_devices:
         RealRNG.list_devices()
         sys.exit(0)
+
+    if args.test:
+        rrng = RealRNG()
+        rrng.selfTest()
 
     # If no arguments, show help
     parser.print_help()
