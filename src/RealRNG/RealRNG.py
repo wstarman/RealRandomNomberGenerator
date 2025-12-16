@@ -210,17 +210,17 @@ class RealRNG:
     def getRand(self) -> float:
         try:
             num = self._hashInput() / self.max_num
-            return num
+            return (num, self.SOURCE_MICROPHONE)
         except RealRNGError:
             logger.debug("Using fallback random number generator")
             from random import Random
             r = Random()
-            return r.random()
+            return (r.random(), self.SOURCE_FALLBACK)
         except Exception as e:
             logger.warning(f"Unexpected error in getRand: {e}, using fallback")
             from random import Random
             r = Random()
-            return r.random()
+            return (r.random(), self.SOURCE_FALLBACK)
 
     def getSource(self) -> str:
         # Try to recover from previous failure periodically
