@@ -274,7 +274,10 @@ class RealRNG:
         import matplotlib.pyplot as plt
         numbers = []
         for i in range(10000):
-            numbers.append(self.getRand())
+            num, source = self.getRand()
+            numbers.append(num)
+            if i == 0:
+                print("Using source:",source) 
         plt.hist(numbers, bins=64, edgecolor='black')
         plt.title("Number Distribution")
         plt.xlabel("Value")
