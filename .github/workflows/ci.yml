@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (Python 3.13)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest flake8 black
+
+      - name: Run flake8
+        run: flake8 src/
+
+      - name: Run pytest
+        run: |
+          if [ -d "tests" ]; then
+            pytest tests/
+          else
+            echo "No tests directory found, skipping tests"
+          fi
+
+  frontend-basic:
+    name: Frontend Basic (Next.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: basic-rng-ui
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: basic-rng-ui/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+  frontend-lottery:
+    name: Frontend Lottery (Astro)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lottery-wheel
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: lottery-wheel/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
