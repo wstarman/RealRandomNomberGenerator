@@ -207,7 +207,8 @@ class RealRNG:
         logger.warning("No working audio devices found")
         return None
 
-    def getRand(self) -> float:
+    # Return: (random value[0,1) ,type(mic/fallback) )
+    def getRand(self) -> tuple[float, str]:
         try:
             num = self._hashInput() / self.max_num
             return (num, self.SOURCE_MICROPHONE)
