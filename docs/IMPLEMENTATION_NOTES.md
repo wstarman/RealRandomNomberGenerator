@@ -98,3 +98,84 @@ node --version  # Should be v18.x.x
 pyenv local
 python --version  # Should be 3.13.x
 ```
+
+## Step 2: Backend Unit Tests
+
+### What was added
+
+- `tests/__init__.py` - Makes tests directory a Python package
+- `tests/conftest.py` - Pytest fixtures and MockRealRNG implementation
+- `tests/test_api.py` - Unit tests for FastAPI endpoints
+- `tests/test_rng.py` - Unit tests for RealRNG library
+
+### Why (SWE principles)
+
+**Chapter 1: What is Software Engineering?**
+- "Beyonce Rule": If you liked it, put a test on it. Tests ensure code quality persists over time as the project evolves.
+- Shift-left testing: Catching bugs early in development is cheaper and faster than finding them in production.
+- Tests serve as executable documentation showing how the code is intended to be used.
+
+**Chapter 11: Testing Overview**
+- Unit tests verify individual components in isolation (API endpoints, RNG methods)
+- Mocking external dependencies (PyAudio hardware) makes tests fast, reliable, and reproducible
+- Tests validate both happy paths (successful operations) and error conditions (RNG failures, missing hardware)
+- Comprehensive test coverage increases confidence when refactoring or adding new features
+
+**Chapter 12: Unit Testing**
+- Each test focuses on a single behavior or requirement
+- Tests are independent and can run in any order
+- Mock objects (MockRealRNG) replace real dependencies for predictable testing
+- Tests verify contracts: return types, value ranges, error handling
+
+### Test coverage
+
+**test_api.py (11 tests):**
+- Response structure and status codes (200 success, 500 error)
+- Field validation (rand, source, timestamp present and correct types)
+- Value constraints (rand between 0-1)
+- Timestamp format validation (ISO format)
+- Source field values (microphone/fallback)
+- Error handling when RNG fails
+- Multiple sequential requests (stateless verification)
+- CORS middleware integration
+
+**test_rng.py (10 tests):**
+- getRand() returns float in [0, 1] range
+- getSource() returns valid string ("microphone" or "fallback")
+- Fallback mode when no audio device available
+- Microphone mode when device present
+- Multiple calls work consistently
+- Resource cleanup (end() method)
+- Context manager support (with statement)
+- Source constants defined correctly
+
+**conftest.py:**
+- MockRealRNG class simulating hardware without requiring microphone
+- Pytest fixtures for test client and mock RNG
+- Configurable mock behavior (source type, failure simulation)
+
+### How to run locally
+
+```bash
+cd /home/programmer/Projects/ntust-2025-fall-SWE/worktrees/swe-enhancements
+pip install pytest httpx
+pytest tests/ -v
+```
+
+**Run specific test files:**
+```bash
+pytest tests/test_api.py -v
+pytest tests/test_rng.py -v
+```
+
+**Run with coverage report:**
+```bash
+pip install pytest-cov
+pytest tests/ --cov=src --cov-report=term-missing
+```
+
+**Run tests in parallel (faster):**
+```bash
+pip install pytest-xdist
+pytest tests/ -n auto
+```
