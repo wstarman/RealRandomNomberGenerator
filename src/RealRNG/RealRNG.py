@@ -207,20 +207,21 @@ class RealRNG:
         logger.warning("No working audio devices found")
         return None
 
-    def getRand(self) -> float:
+    # Return: (random value[0,1) ,type(mic/fallback) )
+    def getRand(self) -> tuple[float, str]:
         try:
             num = self._hashInput() / self.max_num
-            return num
+            return (num, self.SOURCE_MICROPHONE)
         except RealRNGError:
             logger.debug("Using fallback random number generator")
             from random import Random
             r = Random()
-            return r.random()
+            return (r.random(), self.SOURCE_FALLBACK)
         except Exception as e:
             logger.warning(f"Unexpected error in getRand: {e}, using fallback")
             from random import Random
             r = Random()
-            return r.random()
+            return (r.random(), self.SOURCE_FALLBACK)
 
     def getSource(self) -> str:
         # Try to recover from previous failure periodically
@@ -274,7 +275,10 @@ class RealRNG:
         import matplotlib.pyplot as plt
         numbers = []
         for i in range(10000):
-            numbers.append(self.getRand())
+            num, source = self.getRand()
+            numbers.append(num)
+            if i == 0:
+                print("Using source:",source) 
         plt.hist(numbers, bins=64, edgecolor='black')
         plt.title("Number Distribution")
         plt.xlabel("Value")
