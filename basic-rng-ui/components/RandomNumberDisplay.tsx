@@ -97,6 +97,7 @@ export default function RandomNumberDisplay() {
         }}
       >
         <div
+          data-testid="status-indicator-dot"
           style={{
             width: 12,
             height: 12,
