@@ -1,0 +1,82 @@
+{
+  "info": {
+    "name": "RNG API Tests",
+    "_postman_id": "rng-api-tests-v1",
+    "description": "Integration tests for Real Random Number Generator API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Get Random Number",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Test 1: Status code is 200",
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "// Parse response body",
+              "const jsonData = pm.response.json();",
+              "",
+              "// Test 2: Response has rand field (number between 0-1)",
+              "pm.test(\"Response has rand field (number between 0-1)\", function () {",
+              "    pm.expect(jsonData).to.have.property('rand');",
+              "    pm.expect(jsonData.rand).to.be.a('number');",
+              "    pm.expect(jsonData.rand).to.be.at.least(0);",
+              "    pm.expect(jsonData.rand).to.be.at.most(1);",
+              "});",
+              "",
+              "// Test 3: Response has source field (string)",
+              "pm.test(\"Response has source field (string)\", function () {",
+              "    pm.expect(jsonData).to.have.property('source');",
+              "    pm.expect(jsonData.source).to.be.a('string');",
+              "    pm.expect(['microphone', 'fallback']).to.include(jsonData.source);",
+              "});",
+              "",
+              "// Test 4: Response has timestamp field (ISO format)",
+              "pm.test(\"Response has timestamp field (ISO format)\", function () {",
+              "    pm.expect(jsonData).to.have.property('timestamp');",
+              "    pm.expect(jsonData.timestamp).to.be.a('string');",
+              "    // Validate ISO 8601 format",
+              "    const isoRegex = /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+$/;",
+              "    pm.expect(jsonData.timestamp).to.match(isoRegex);",
+              "});",
+              "",
+              "// Test 5: Response time under 500ms (TC-NON-001)",
+              "pm.test(\"Response time under 500ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(500);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/random",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "random"
+          ]
+        },
+        "description": "Fetch a random number from the RNG API endpoint"
+      },
+      "response": []
+    }
+  ]
+}
