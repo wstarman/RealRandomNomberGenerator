@@ -44,8 +44,7 @@ rng_lock = threading.Lock()  # Serialize access to shared RNG instance
 async def random():
     # Move blocking I/O to thread pool and protect with lock
     with rng_lock:
-        rand_value = await asyncio.to_thread(rng.getRand)
-        source_value = rng.getSource()  # Fast, no I/O
+        (rand_value, source_value) = await asyncio.to_thread(rng.getRand)
 
     return {
         'rand': rand_value,
