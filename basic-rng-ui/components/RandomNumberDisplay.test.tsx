@@ -41,6 +41,7 @@ describe('RandomNumberDisplay', () => {
 
   it('shows error alert on failed API call', async () => {
     const alertMock = jest.spyOn(window, 'alert').mockImplementation();
+    const consoleMock = jest.spyOn(console, 'error').mockImplementation();
 
     (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
 
@@ -54,6 +55,7 @@ describe('RandomNumberDisplay', () => {
     });
 
     alertMock.mockRestore();
+    consoleMock.mockRestore();
   });
 
   it('disables button during loading', async () => {
@@ -72,6 +74,7 @@ describe('RandomNumberDisplay', () => {
   it('shows timeout error after 5 seconds', async () => {
     jest.useFakeTimers();
     const alertMock = jest.spyOn(window, 'alert').mockImplementation();
+    const consoleMock = jest.spyOn(console, 'error').mockImplementation();
 
     // Mock fetch to never resolve (simulates hanging request)
     (global.fetch as jest.Mock).mockImplementation(
@@ -103,10 +106,12 @@ describe('RandomNumberDisplay', () => {
 
     jest.useRealTimers();
     alertMock.mockRestore();
+    consoleMock.mockRestore();
   });
 
   it('validates API response structure', async () => {
     const alertMock = jest.spyOn(window, 'alert').mockImplementation();
+    const consoleMock = jest.spyOn(console, 'error').mockImplementation();
 
     // Invalid response (missing fields)
     (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -124,5 +129,6 @@ describe('RandomNumberDisplay', () => {
     });
 
     alertMock.mockRestore();
+    consoleMock.mockRestore();
   });
 });
