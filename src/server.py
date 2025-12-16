@@ -44,8 +44,7 @@ rng_lock = threading.Lock()  # Serialize access to shared RNG instance
 async def random():
     # Move blocking I/O to thread pool and protect with lock
     with rng_lock:
-        rand_value = await asyncio.to_thread(rng.getRand)
-        source_value = rng.getSource()  # Fast, no I/O
+        (rand_value, source_value) = await asyncio.to_thread(rng.getRand)
 
     return {
         'rand': rand_value,
@@ -60,7 +59,7 @@ async def api_random(response: Response) -> dict:
         return await asyncio.wait_for(random(), timeout=5)
 
     except Exception as e:
-        if e is asyncio.TimeoutError:
+        if type(e) is asyncio.TimeoutError:
             logger.error("Request timed out after 5 seconds")
         else:
             logger.error(f"Error in api_random: {type(e).__name__}: {e}")
