@@ -26,6 +26,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Run unit tests
+        run: python -m unittest tests/test_api_function.py -v
+
   frontend-basic:
     name: Frontend Basic (Next.js)
     runs-on: ubuntu-latest
