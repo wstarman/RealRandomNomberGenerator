@@ -84,6 +84,26 @@ From the repository root:
 pip install -r requirements.txt
 ```
 
+#### Local Development with Virtual Environment (Recommended)
+
+```bash
+# Create a virtual environment
+python3 -m venv .venv
+
+# Activate the virtual environment
+source .venv/bin/activate  # Linux/macOS
+# or: .venv\Scripts\activate  # Windows
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Install test dependencies
+pip install pytest httpx
+
+# Run backend tests
+python3 -m pytest tests/ -v
+```
+
 Required packages:
 - fastapi
 - uvicorn
