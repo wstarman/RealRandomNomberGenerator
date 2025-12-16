@@ -52,9 +52,9 @@
               "    pm.expect(jsonData.timestamp).to.match(isoRegex);",
               "});",
               "",
-              "// Test 5: Response time under 5000ms",
-              "pm.test(\"Response time under 5000ms\", function () {",
-              "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+              "// Test 5: Response time under 500ms (TC-NON-001)",
+              "pm.test(\"Response time under 500ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(500);",
               "});"
             ],
             "type": "text/javascript"
