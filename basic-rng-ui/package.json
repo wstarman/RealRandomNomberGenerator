@@ -1,6 +1,7 @@
 {
-  "name": "mantine-next-template",
+  "name": "basic-rng-ui",
   "version": "1.0.0",
+  "description": "Basic Random Number Generator Interface",
   "private": true,
   "scripts": {
     "dev": "next dev",
