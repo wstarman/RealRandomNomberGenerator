@@ -7,7 +7,6 @@ This module provides shared test fixtures including:
 """
 
 import pytest
-from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
 import sys
 import os
@@ -68,18 +67,25 @@ def client(mock_rng):
     """
     Fixture that provides a FastAPI TestClient with mocked RNG.
 
-    The RNG is patched before the server module is imported to ensure
+    The RNG instance is patched on the server module to ensure
     the mock is used throughout the application.
     """
-    # Patch RealRNG before importing server
-    with patch('RealRNG.RealRNG.RealRNG', return_value=mock_rng):
-        # Import server after patching
-        from server import app
+    # Import server module
+    import server
 
-        # Create test client
-        test_client = TestClient(app)
+    # Save original rng instance
+    original_rng = server.rng
 
-        # Make mock_rng accessible via client for test manipulation
-        test_client.mock_rng = mock_rng
+    # Replace rng instance with mock
+    server.rng = mock_rng
 
-        yield test_client
+    # Create test client
+    test_client = TestClient(server.app)
+
+    # Make mock_rng accessible via client for test manipulation
+    test_client.mock_rng = mock_rng
+
+    yield test_client
+
+    # Restore original rng
+    server.rng = original_rng
