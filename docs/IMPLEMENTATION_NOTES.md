@@ -179,3 +179,98 @@ pytest tests/ --cov=src --cov-report=term-missing
 pip install pytest-xdist
 pytest tests/ -n auto
 ```
+
+## Step 3: Postman/Newman Integration Tests
+
+### What was added
+- Postman collection for API testing
+- Newman runner script
+- CI integration (optional job)
+
+### Why (SWE principles)
+
+**Chapter 11: Testing Overview**
+- Integration testing validates end-to-end flow from HTTP request to JSON response
+- Tests verify the API contract that external clients depend on
+- Newman enables CLI-based API testing (instructor requirement)
+- Automated in CI for continuous validation
+- Different from unit tests: validates entire request/response cycle including FastAPI middleware, routing, and serialization
+
+**Chapter 14: Larger Testing**
+- Integration tests sit between unit tests and system tests in the testing pyramid
+- Verify that components work together correctly (FastAPI + RealRNG library)
+- Catch issues that unit tests miss: serialization errors, middleware problems, CORS configuration
+- Postman collections serve as both executable tests and API documentation
+- Newman allows same tests to run locally and in CI without modification
+
+**Chapter 1: What is Software Engineering?**
+- "Shift left" testing: Catching integration issues early before deployment
+- Tests ensure API stability over time as backend evolves
+- Executable documentation prevents API contract drift
+
+### How it works
+
+**Postman Collection (rng-api.postman_collection.json):**
+- Postman Collection v2.1 format with base URL variable `{{baseUrl}}`
+- Single request: GET /api/random
+- Five test assertions executed after each request:
+  1. Status code is 200 (successful response)
+  2. Response has `rand` field (number between 0-1)
+  3. Response has `source` field (string: "microphone" or "fallback")
+  4. Response has `timestamp` field (ISO 8601 format validation)
+  5. Response time under 5000ms (performance check)
+
+**Newman Runner Script (run-newman.sh):**
+- Bash script that invokes Newman CLI with collection
+- Overrides baseUrl via environment variable
+- Outputs to both CLI (human-readable) and JSON (machine-parseable)
+- JSON results saved to tests/postman/results.json for CI artifacts
+
+**CI Integration (integration-tests job):**
+- Runs after backend unit tests pass (needs: backend)
+- Starts FastAPI server in background
+- Waits up to 60 seconds for server readiness (curl health check)
+- Installs Newman via npm
+- Executes Postman collection via run-newman.sh
+- Marked as continue-on-error: true since backend needs real audio hardware
+- Uploads Newman JSON results as CI artifact for debugging
+
+### How to run locally
+
+**Prerequisites:**
+```bash
+# Install Newman globally
+npm install -g newman
+
+# Or use npx (no installation required)
+npx newman --version
+```
+
+**Run integration tests:**
+```bash
+cd /home/programmer/Projects/ntust-2025-fall-SWE/worktrees/swe-enhancements
+
+# Terminal 1: Start backend server
+python src/server.py
+
+# Terminal 2: Run Newman tests
+./tests/postman/run-newman.sh
+
+# Or run directly with Newman
+newman run tests/postman/rng-api.postman_collection.json \
+  --env-var "baseUrl=http://127.0.0.1:8000"
+```
+
+**View results:**
+```bash
+# CLI output shows pass/fail for each test
+# JSON results saved to tests/postman/results.json
+cat tests/postman/results.json | jq '.run.stats'
+```
+
+### CI behavior
+- Integration tests run after unit tests pass
+- Marked as `continue-on-error: true` since backend needs real audio hardware
+- In CI, backend will use fallback RNG (no microphone available)
+- Tests verify fallback mode works correctly
+- Newman results uploaded as artifacts for post-run analysis
