@@ -46,6 +46,7 @@ export default function RandomNumberDisplay() {
         timestamp: apiData.timestamp,
       });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to fetch random number:', error);
 
       let errorMessage = 'Failed to generate random number. Please try again.';
@@ -63,6 +64,7 @@ export default function RandomNumberDisplay() {
         }
       }
 
+      // eslint-disable-next-line no-alert
       alert(errorMessage);
     } finally {
       clearTimeout(timeoutId);
