@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "npm run eslint && npm run stylelint",
     "eslint": "eslint .",
-    "stylelint": "stylelint '**/*.css' --cache",
+    "stylelint": "stylelint '**/*.css' --cache --allow-empty-input",
     "jest": "jest",
     "jest:watch": "jest --watch",
     "prettier:check": "prettier --check \"**/*.{ts,tsx}\"",
