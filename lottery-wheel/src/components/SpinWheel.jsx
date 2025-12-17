@@ -1,3 +1,4 @@
+import { set } from "astro:schema";
 import { useState, useRef } from "react";
 
 const colors = ["#ff6b6b", "#4ecdc4", "#feca57", "#5f27cd"];
@@ -49,17 +50,21 @@ export default function SpinWheel() {
 
         try {
             // try to call API on backend to get random number
-            const res = await fetch("/api/random"); // not implemented yet
+            const res = await fetch("http://127.0.0.1:8000/api/random", {
+                method: "GET",
+            });
+
             if (res.ok) {
                 const data = await res.json();
-                randomValue = data.value; // API is expected to return { value: 0 ~ 1 }
-                setRngMode(data.mode || "");  // API 需回傳 { value: 0~1, mode: "microphone" }
+                randomValue = data.rand;      // API is expected to return { value: 0 ~ 1 }
+                setRngMode(data.source || "unknown"); // set RNG mode based on API response (microphone / fallback).
             } else {
                 throw new Error("API is not available");
             }
         } catch (err) {
-            // API failed or not available → fallback
+            console.error(err);
             randomValue = Math.random();
+            setRngMode("aip unused");
         }
 
         // randomly select a index as the winner 
