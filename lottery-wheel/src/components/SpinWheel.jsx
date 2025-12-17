@@ -1,4 +1,5 @@
 import { set } from "astro:schema";
+import React from "react";
 import { useState, useRef } from "react";
 
 const colors = ["#ff6b6b", "#4ecdc4", "#feca57", "#5f27cd"];
@@ -135,7 +136,7 @@ export default function SpinWheel() {
             </div>
             <div style={{justifyContent: "center", alignItems: "flex-start", display: "flex", gap: "2rem" }}>
                 {/* wheel */}
-                <div style={{ width: "300px", height: "300px", position: "relative" }}>
+                <div data-testid="wheel" style={{ width: "300px", height: "300px", position: "relative" }}>
                     <div
                         ref={wheelRef}
                         style={{
