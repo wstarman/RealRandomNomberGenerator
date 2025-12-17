@@ -11,7 +11,7 @@ interface RandomData {
 export default function RandomNumberDisplay() {
   const [data, setData] = useState<RandomData>({
     rand: null,
-    source: 'fallback',
+    source: 'microphone',
     timestamp: '',
   });
   const [loading, setLoading] = useState(false);
@@ -97,6 +97,7 @@ export default function RandomNumberDisplay() {
         }}
       >
         <div
+          data-testid="status-indicator-dot"
           style={{
             width: 12,
             height: 12,

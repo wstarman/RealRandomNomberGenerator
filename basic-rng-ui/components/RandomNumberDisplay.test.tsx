@@ -1,3 +1,4 @@
+import { COLORS } from '../constants/colors';
 import { fireEvent, render, screen, waitFor } from '../test-utils';
 import RandomNumberDisplay from './RandomNumberDisplay';
 
@@ -130,5 +131,101 @@ describe('RandomNumberDisplay', () => {
 
     alertMock.mockRestore();
     consoleMock.mockRestore();
+  });
+
+  it('shows green status indicator when source is microphone', async () => {
+    const mockData = {
+      rand: 0.5,
+      source: 'microphone',
+      timestamp: '2025-12-11T10:30:00.123456',
+    };
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockData,
+    });
+
+    render(<RandomNumberDisplay />);
+    fireEvent.click(screen.getByRole('button', { name: /pick a number/i }));
+
+    await waitFor(() => {
+      const dot = screen.getByTestId('status-indicator-dot');
+      expect(dot).toHaveStyle({ backgroundColor: COLORS.STATUS_MICROPHONE });
+    });
+  });
+
+  it('shows red status indicator when source is fallback', async () => {
+    const mockData = {
+      rand: 0.5,
+      source: 'fallback',
+      timestamp: '2025-12-11T10:30:00.123456',
+    };
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockData,
+    });
+
+    render(<RandomNumberDisplay />);
+    fireEvent.click(screen.getByRole('button', { name: /pick a number/i }));
+
+    await waitFor(() => {
+      const dot = screen.getByTestId('status-indicator-dot');
+      expect(dot).toHaveStyle({ backgroundColor: COLORS.STATUS_FALLBACK });
+    });
+  });
+
+  it('displays fallback source metadata when source is fallback', async () => {
+    const mockData = {
+      rand: 0.987654321,
+      source: 'fallback',
+      timestamp: '2025-12-11T10:30:00.123456',
+    };
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockData,
+    });
+
+    render(<RandomNumberDisplay />);
+    fireEvent.click(screen.getByRole('button', { name: /pick a number/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/0.987654321/)).toBeInTheDocument();
+      expect(screen.getByText(/source: fallback/i)).toBeInTheDocument();
+    });
+  });
+
+  it('shows loading overlay during API request', async () => {
+    // Mock fetch to delay response
+    (global.fetch as jest.Mock).mockImplementation(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(
+            () =>
+              resolve({
+                ok: true,
+                json: async () => ({
+                  rand: 0.5,
+                  source: 'microphone',
+                  timestamp: '2025-12-11T10:30:00',
+                }),
+              }),
+            1000
+          )
+        )
+    );
+
+    render(<RandomNumberDisplay />);
+    fireEvent.click(screen.getByRole('button', { name: /pick a number/i }));
+
+    // Mantine LoadingOverlay renders a loader element with role="presentation" containing an SVG
+    // When visible=true, a loader SVG is rendered in the DOM
+    await waitFor(() => {
+      const loader = document.querySelector(
+        '.mantine-Loader-root, [class*="mantine-LoadingOverlay"]'
+      );
+      expect(loader).toBeInTheDocument();
+    });
   });
 });
