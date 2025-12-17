@@ -11,7 +11,7 @@ interface RandomData {
 export default function RandomNumberDisplay() {
   const [data, setData] = useState<RandomData>({
     rand: null,
-    source: 'fallback',
+    source: 'microphone',
     timestamp: '',
   });
   const [loading, setLoading] = useState(false);
